@@ -28,6 +28,8 @@ using namespace Microsoft::WRL;
 #include "GameTimer.h"
 #include "DDSTextureLoader.h"
 
+#include <fbxsdk.h>
+
 
 #define PI 3.1415926535f
 
@@ -255,6 +257,19 @@ public:
 		Vertex(float x, float y, float z, float u, float v) :
 			pos(x, y, z), tex(u, v) {};
 	};
+	struct Vertex_t
+	{
+		XMFLOAT3 pos;
+		XMFLOAT3 nor;
+		XMFLOAT4 col;
+		XMFLOAT2 tex;
+
+		Vertex_t() {};
+		Vertex_t(XMFLOAT3 pos, XMFLOAT3 nor, XMFLOAT4 col, XMFLOAT2 tex) :
+			pos(pos), nor(nor), col(col), tex(tex) {};
+		Vertex_t(float x, float y, float z, float m, float n, float o, float r, float g, float b, float a, float u, float v) :
+			pos(x, y, z), nor(m, n, o), col(r, g, b, a), tex(u, v) {};
+	};
 
 	struct MeshData
 	{
@@ -276,6 +291,25 @@ public:
 		std::vector<uint16> mIndices16;
 	};
 
+	struct MeshData_t
+	{
+		std::vector<Vertex_t> Vertices;
+		std::vector<uint32> Indices32;
+		std::vector<uint16>& getIndices16()
+		{
+			if (mIndices16.empty())
+			{
+				mIndices16.resize(Indices32.size());
+				for (UINT i = 0; i < Indices32.size(); ++i)
+				{
+					mIndices16[i] = static_cast<uint16>(Indices32[i]);
+				}
+			}
+			return mIndices16;
+		}
+	private:
+		std::vector<uint16> mIndices16;
+	};
 	MeshData CreateGrid(float width, float depth, uint32 m, uint32 n);
 };
 struct RenderItem
@@ -302,6 +336,8 @@ struct RenderItem
 enum class RenderLayer :int
 {
 	Opaque = 0,
+	Sky,
+	Camp,
 	Count
 };
 class DXUtil

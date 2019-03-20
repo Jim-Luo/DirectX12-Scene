@@ -62,6 +62,7 @@ VertexOut VS(VertexIn vin)
 
 	// Transform to homogeneous clip space.
 	float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
+	//posW.xyz += gEyePosW;
 	vout.PosW = posW.xyz;
 	vout.PosH = mul(posW, gViewProj);
 	vout.NormalW = mul(vin.NormalL, (float3x3)gWorld);

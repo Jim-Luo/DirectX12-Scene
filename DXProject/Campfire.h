@@ -2,6 +2,7 @@
 #include "DXSample.h"
 #include "DXUtil.h"
 #include "Camera.h"
+#include "ModelLoader.h"
 
 class Campfire :
 	public DXSample
@@ -13,9 +14,12 @@ private:
 
 	Camera mCamera;
 
+	ModelLoader mModelLoader;
+
 	
 protected:
-	ComPtr<ID3D12RootSignature> mRootSignature;
+	ComPtr<ID3D12RootSignature> mTerranRootSignature;
+	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> mModelRootSignature;
 	ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
