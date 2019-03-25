@@ -10,7 +10,7 @@ bool Campfire::initDirect3D()
 	mCmdList->Reset(mCmdAlloc.Get(), nullptr);
 	
 	mCamera.SetPosition(0.0f, 20.0f, -15.0f);
-
+	mFires["fire1"] = std::make_unique<Fire>(10, XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT4(0.8f, 0.4f, 0.0f, 1.0f), 0.2f, 3);
 	loadTexture();
 	buildRootSignature();
 	buildDescriptorHeaps();
@@ -118,7 +118,7 @@ void Campfire::Update(const GameTimer& gt)
 
 	}
 
-
+	updateDynamicElements(gt);
 	
 
 }
@@ -154,6 +154,9 @@ void Campfire::Draw()
 
 	mCmdList->SetPipelineState(mPSOs["camp"].Get());
 	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Camp]);
+
+	mCmdList->SetPipelineState(mPSOs["fire1"].Get());
+	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Fire]);
 
 
 	mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(getCurrentBackBuffer(),
@@ -274,7 +277,7 @@ void Campfire::loadTexture()
 
 	auto camp = std::make_unique<Texture>();
 	camp->Name = "camp";
-	camp->Filename = L"campfire.fbm\\camp.dds";
+	camp->Filename = L"wood03.dds";
 
 	CreateDDSTextureFromFile12(mDevice.Get(), mCmdList.Get(), camp->Filename.c_str(), camp->Resource, camp->UploadHeap);
 
@@ -286,7 +289,7 @@ void Campfire::buildDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NumDescriptors = 3;//
+	srvHeapDesc.NumDescriptors = 4;//
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	mDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(mSrvDescriptorHeap.GetAddressOf()));
 
@@ -323,6 +326,10 @@ void Campfire::buildDescriptorHeaps()
 	campSrvDesc.Texture2DArray.MipLevels = -1;
 	campSrvDesc.Texture2DArray.FirstArraySlice = 0;
 	campSrvDesc.Texture2DArray.ArraySize = camp->GetDesc().DepthOrArraySize;
+	mDevice->CreateShaderResourceView(camp.Get(), &campSrvDesc, hDesc);
+
+	hDesc.Offset(1, mCBVSRVUAVDescriptorSize);
+
 	mDevice->CreateShaderResourceView(camp.Get(), &campSrvDesc, hDesc);
 
 
@@ -402,6 +409,26 @@ void Campfire::buildRootSignature()
 		campSerializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(mModelRootSignature["camp"].GetAddressOf()));
 
+	CD3DX12_ROOT_PARAMETER fireRootPara[4];
+	fireRootPara[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	fireRootPara[1].InitAsConstantBufferView(0);
+	fireRootPara[2].InitAsConstantBufferView(1);
+	fireRootPara[3].InitAsConstantBufferView(2);
+	CD3DX12_ROOT_SIGNATURE_DESC fireRootSigDesc;
+	fireRootSigDesc.Init(_countof(fireRootPara), fireRootPara, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	ComPtr<ID3DBlob> fireSerializedRootSig = nullptr;
+	ComPtr<ID3DBlob> fireError = nullptr;
+
+	HRESULT hr_fire = D3D12SerializeRootSignature(&fireRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, fireSerializedRootSig.GetAddressOf(), fireError.GetAddressOf());
+
+	if (fireError != nullptr)
+		OutputDebugStringA((char *)fireError->GetBufferPointer());
+
+	mDevice->CreateRootSignature(0,
+		fireSerializedRootSig->GetBufferPointer(),
+		fireSerializedRootSig->GetBufferSize(),
+		IID_PPV_ARGS(mEffectRootSignature["fire1"].GetAddressOf()));
+
 }
 
 void Campfire::buildShaderAndInputLayout()
@@ -414,6 +441,10 @@ void Campfire::buildShaderAndInputLayout()
 
 	mShaders["campVS"] = DXUtil::CompileShader(L"camp.hlsl", nullptr, "VS", "vs_5_0");
 	mShaders["campPS"] = DXUtil::CompileShader(L"camp.hlsl", nullptr, "PS", "ps_5_0");
+
+	mShaders["fireVS"] = DXUtil::CompileShader(L"fire.hlsl", nullptr, "VS", "vs_5_0");
+	mShaders["fireGS"] = DXUtil::CompileShader(L"fire.hlsl", nullptr, "GS", "gs_5_0");
+	mShaders["firePS"] = DXUtil::CompileShader(L"fire.hlsl", nullptr, "PS", "ps_5_0");
 
 
 	mInputLayout = {
@@ -455,6 +486,18 @@ void Campfire::buildMaterials()
 	camp->roughness = 1.0f;
 
 	mMaterials["camp"] = std::move(camp);
+
+	auto fire = std::make_unique<Material>();
+	fire->matCBIndex = 3;
+	fire->matName = "fire";
+	fire->diffuseSRVHeapIndex = 3;
+	fire->diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	fire->fresnelR0 = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	fire->roughness = 1.0f;
+
+	mMaterials["fire"] = std::move(fire);
+
+
 }
 
 void Campfire::buildGeometry()
@@ -583,7 +626,7 @@ void Campfire::buildGeometry()
 
 
 	GeometryGenerator::MeshData_t wood;
-	mModelLoader.loadModel("campfire.fbx", wood);
+	mModelLoader.loadModel("wood.fbx", wood);
 
 	std::vector<Vertex> vertices_wood(wood.Vertices.size());
 	for (int i = 0; i < wood.Vertices.size(); ++i)
@@ -591,8 +634,7 @@ void Campfire::buildGeometry()
 		vertices_wood[i].pos = wood.Vertices[i].pos;
 		vertices_wood[i].col = wood.Vertices[i].col;
 		vertices_wood[i].nor = wood.Vertices[i].nor;
-		vertices_wood[i].tex.x = i * 1.0f / wood.Vertices.size();
-		vertices_wood[i].tex.y = i * 1.0f / wood.Vertices.size();
+		vertices_wood[i].tex = wood.Vertices[i].tex;
 
 	}
 	const UINT vbByteSize_wood = (UINT)vertices_wood.size() * sizeof(Vertex);
@@ -629,7 +671,42 @@ void Campfire::buildGeometry()
 	geo_wood->DrawArgs["wood"] = submesh_wood;
 
 	mGeometries["wood"] = std::move(geo_wood);
+
 	
+	std::vector<std::uint16_t> indices_fire(mFires["fire1"]->VertexCount());
+	for (size_t i = 0; i < indices_fire.size(); i++)
+	{
+		indices_fire[i] = i;
+	}
+	
+	UINT vbByteSize_fire = mFires["fire1"]->VertexCount() * sizeof(Vertex);
+	UINT ibByteSize_fire = mFires["fire1"]->VertexCount() * sizeof(std::uint16_t);
+
+	auto geo_fire = std::make_unique<MeshGeometry>();
+	geo_fire->Name = "fire1";
+
+	geo_fire->VertexBufferCPU = nullptr;
+	geo_fire->VertexBufferGPU = nullptr;
+
+	D3DCreateBlob(ibByteSize_fire, &geo_fire->IndexBufferCPU);
+	CopyMemory(geo_fire->IndexBufferCPU->GetBufferPointer(),indices_fire.data(),ibByteSize_fire);
+
+	geo_fire->IndexBufferGPU = DXUtil::createDefaultBuffer(mDevice.Get(), 
+		mCmdList.Get(), indices_fire.data(), ibByteSize_fire, geo_fire->IndexBufferUpload);
+
+	geo_fire->VertexBufferStride = sizeof(Vertex);
+	geo_fire->VertexBufferByteSize = vbByteSize_fire;
+	geo_fire->IndexBufferByteSize = ibByteSize_fire;
+	geo_fire->IndexFormat = DXGI_FORMAT_R16_UINT;
+
+	SubmeshGeometry submesh_fire;
+	submesh_fire.IndexCount = (UINT)indices_fire.size();
+	submesh_fire.StartIndexLocation = 0;
+	submesh_fire.BaseVertexLocation = 0;
+
+	geo_fire->DrawArgs["fire"] = submesh_fire;
+
+	mGeometries["fire"] = std::move(geo_fire);
 }
 
 
@@ -653,7 +730,7 @@ void Campfire::buildRenderItem()
 	auto skyRitem = std::make_unique<RenderItem>();
 	skyRitem->World = MathHelper::Identity4x4();
 	XMStoreFloat4x4(&skyRitem->World, XMMatrixScaling(0.15f, 0.2f, 0.15f));
-	XMStoreFloat4x4(&skyRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
+	XMStoreFloat4x4(&skyRitem->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
 	skyRitem->Geo = mGeometries["sky"].get();
 	skyRitem->Mat = mMaterials["sky"].get();
 	skyRitem->objCBIndex = 1;
@@ -667,8 +744,8 @@ void Campfire::buildRenderItem()
 
 	auto campRitem = std::make_unique<RenderItem>();
 	campRitem->World = MathHelper::Identity4x4();
-	XMStoreFloat4x4(&campRitem->World,XMMatrixScaling(0.1f, 0.1f, 0.1f));
-	XMStoreFloat4x4(&campRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
+	XMStoreFloat4x4(&campRitem->World,XMMatrixScaling(5.0f, 5.0f, 5.0f));
+	XMStoreFloat4x4(&campRitem->TexTransform, XMMatrixScaling(1.0f, 0.5f, 1.0f));
 	campRitem->Geo = mGeometries["wood"].get();
 	campRitem->Mat = mMaterials["camp"].get();
 	campRitem->objCBIndex = 2;
@@ -680,6 +757,21 @@ void Campfire::buildRenderItem()
 
 	mAllRitems.push_back(std::move(campRitem));
 
+	auto fireRitem = std::make_unique<RenderItem>();
+	fireRitem->World = MathHelper::Identity4x4();
+	fireRitem->TexTransform = MathHelper::Identity4x4();
+	fireRitem->Geo = mGeometries["fire"].get();
+	fireRitem->Mat = mMaterials["fire"].get();
+	fireRitem->objCBIndex = 3;
+	fireRitem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+	fireRitem->BaseVertexLocation = fireRitem->Geo->DrawArgs["fire"].BaseVertexLocation;
+	fireRitem->StartIndexLocation = fireRitem->Geo->DrawArgs["fire"].StartIndexLocation;
+	fireRitem->IndexCount = fireRitem->Geo->DrawArgs["fire"].IndexCount;
+	mRitemLayer[(int)RenderLayer::Fire].push_back(fireRitem.get());
+
+	mDynamicRitems["fire1"] = fireRitem.get();
+	mAllRitems.push_back(std::move(fireRitem));
+
 
 }
 
@@ -687,7 +779,9 @@ void Campfire::buildFrameResource()
 {
 	for (UINT i = 0; i < 3; ++i)
 	{
-		mFrameResources.push_back(std::make_unique<FrameResource>(mDevice.Get(), 1, (UINT)mAllRitems.size(),(UINT)mMaterials.size()));
+		auto frameResource = std::make_unique<FrameResource>(mDevice.Get(), 1, (UINT)mAllRitems.size(), (UINT)mMaterials.size());
+		frameResource.get()->addDynamicElements("fire1", mFires["fire1"]->VertexCount());
+		mFrameResources.push_back(std::move(frameResource));
 	}
 }
 
@@ -773,6 +867,50 @@ void Campfire::buildPSO()
 	};
 	mDevice->CreateGraphicsPipelineState(&campPSO, IID_PPV_ARGS(mPSOs["camp"].GetAddressOf()));
 
+	D3D12_RENDER_TARGET_BLEND_DESC fireBlendDesc;
+	fireBlendDesc.BlendEnable = true;
+	fireBlendDesc.LogicOpEnable = false;
+	fireBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	fireBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	fireBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+	fireBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+	fireBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+	fireBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	fireBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+	fireBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC firePSO;
+	ZeroMemory(&firePSO, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	firePSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	firePSO.BlendState.RenderTarget[0] = fireBlendDesc;
+	firePSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	firePSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	firePSO.SampleMask = UINT_MAX;
+	firePSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	firePSO.NumRenderTargets = 1;
+	firePSO.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	firePSO.pRootSignature = mEffectRootSignature["fire1"].Get();
+	firePSO.InputLayout = { mInputLayout.data(),(UINT)mInputLayout.size() };
+	firePSO.SampleDesc.Count = 1;
+	firePSO.SampleDesc.Quality = 0;
+	firePSO.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	firePSO.VS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["fireVS"]->GetBufferPointer()),
+		mShaders["fireVS"]->GetBufferSize()
+	};
+	firePSO.GS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["fireGS"]->GetBufferPointer()),
+		mShaders["fireGS"]->GetBufferSize()
+	};
+	firePSO.PS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["firePS"]->GetBufferPointer()),
+		mShaders["firePS"]->GetBufferSize()
+	};
+	mDevice->CreateGraphicsPipelineState(&firePSO, IID_PPV_ARGS(mPSOs["fire1"].GetAddressOf()));
+
 }
 
 void Campfire::drawRenderItems(ID3D12GraphicsCommandList * cmdList, const std::vector<RenderItem*>& ritems)
@@ -792,7 +930,7 @@ void Campfire::drawRenderItems(ID3D12GraphicsCommandList * cmdList, const std::v
 
 		cmdList->IASetVertexBuffers(0, 1, &ri->Geo->getVertexBufferView());
 		cmdList->IASetIndexBuffer(&ri->Geo->getIndexBufferView());
-		cmdList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		cmdList->IASetPrimitiveTopology(ri->primitiveType);
 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 		tex.Offset(ri->Mat->diffuseSRVHeapIndex, mCBVSRVUAVDescriptorSize);
@@ -810,6 +948,28 @@ void Campfire::drawRenderItems(ID3D12GraphicsCommandList * cmdList, const std::v
 	}
 	
 	
+	
+}
+
+void Campfire::updateDynamicElements(const GameTimer & gt)
+{
+	static float t_base = 0.0f; 
+	mFires["fire1"]->Update(gt.DeltaTime());
+	auto currfire1VB = mCurrFrameResource->dynamicElement["fire1"].get();
+	for (int i = 0; i < mFires["fire1"]->VertexCount(); ++i)
+	{
+		Vertex v;
+
+		v.pos = mFires["fire1"]->Position(i).position;
+		v.col = mFires["fire1"]->Position(i).color;
+		v.nor = XMFLOAT3(1.0f, 1.0f, 1.0f);
+		v.tex = XMFLOAT2(1.0f, 1.0f);
+
+		currfire1VB->CopyData(i, v);
+	}
+
+	mDynamicRitems["fire1"]->Geo->VertexBufferGPU = currfire1VB->getUploadBuffer();
+
 	
 }
 

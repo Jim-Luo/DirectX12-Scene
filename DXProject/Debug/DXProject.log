@@ -1,1 +1,9 @@
-﻿  DXProject.vcxproj -> C:\Users\luoga\Desktop\DirectX\DXProject\Debug\DXProject.exe
+﻿  Campfire.cpp
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(581): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(632): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(679): warning C4267: “=”: 从“size_t”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=GeometryGenerator::uint16
+          ]
+  DXProject.vcxproj -> C:\Users\luoga\Desktop\DirectX\DXProject\Debug\DXProject.exe

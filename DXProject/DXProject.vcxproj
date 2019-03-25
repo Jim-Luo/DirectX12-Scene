@@ -196,6 +196,7 @@
     <Image Include="grass.dds" />
     <Image Include="sky02.dds" />
     <Image Include="small.ico" />
+    <Image Include="wood03.dds" />
   </ItemGroup>
   <ItemGroup>
     <None Include="campfire.fbx" />
@@ -211,6 +212,7 @@
       <FileType>Document</FileType>
     </None>
     <None Include="mSky.FBX" />
+    <None Include="wood.FBX" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LightingUtil.hlsl">
@@ -240,6 +242,19 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="camp.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Geometry</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="fire.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Geometry</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Geometry</ShaderType>

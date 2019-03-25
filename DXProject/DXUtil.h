@@ -174,13 +174,18 @@ public:
 	FrameResource(ID3D12Device *mDevice, UINT passCount, UINT objCount, UINT matCount);
 	~FrameResource();
 
+	void addDynamicElements(std::string str, UINT vertexCount);
+
 	ComPtr<ID3D12CommandAllocator> mCmdAlloc;
 	std::unique_ptr<UploadBuffer<ObjectConstants>> objCB = nullptr;
 	std::unique_ptr<UploadBuffer<PassConstants>> passCB = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialConstants>> matCB = nullptr;
+	std::unordered_map<std::string, std::unique_ptr<UploadBuffer<Vertex>>> dynamicElement;
 
 
 	UINT64 Fence = 0;
+private:
+	ID3D12Device* mDevice = nullptr;
 };
 
 struct SubmeshGeometry
@@ -338,6 +343,7 @@ enum class RenderLayer :int
 	Opaque = 0,
 	Sky,
 	Camp,
+	Fire,
 	Count
 };
 class DXUtil

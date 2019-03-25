@@ -3,6 +3,7 @@
 
 FrameResource::FrameResource(ID3D12Device *mDevice, UINT passCount, UINT objCount)
 {
+	this->mDevice = mDevice;
 	mDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mCmdAlloc.GetAddressOf()));
 	objCB = std::make_unique<UploadBuffer<ObjectConstants>>(mDevice, objCount,true);
 	passCB = std::make_unique<UploadBuffer<PassConstants>>(mDevice, passCount, true);
@@ -14,9 +15,16 @@ FrameResource::FrameResource(ID3D12Device * mDevice, UINT passCount, UINT objCou
 	matCB = std::make_unique<UploadBuffer<MaterialConstants>>(mDevice, matCount, true);
 }
 
+
+
 FrameResource::~FrameResource()
 {
 
+}
+
+void FrameResource::addDynamicElements(std::string str, UINT vertexCount)
+{
+	dynamicElement[str] = std::make_unique<UploadBuffer<Vertex>>(mDevice, vertexCount, false);
 }
 
 UINT DXUtil::calConstantBufferByteSize(UINT byteSize)

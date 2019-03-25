@@ -3,6 +3,7 @@
 #include "DXUtil.h"
 #include "Camera.h"
 #include "ModelLoader.h"
+#include "Fire.h"
 
 class Campfire :
 	public DXSample
@@ -20,12 +21,16 @@ private:
 protected:
 	ComPtr<ID3D12RootSignature> mTerranRootSignature;
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> mModelRootSignature;
+	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> mEffectRootSignature;
 	ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 	std::vector<RenderItem*> mRitemLayer[(int)RenderLayer::Count];
 	std::vector<std::unique_ptr<RenderItem>> mAllRitems;
 	PassConstants mMainPassCB;
+
+	std::unordered_map<std::string, std::unique_ptr<Fire>> mFires;
+	std::unordered_map<std::string, RenderItem*> mDynamicRitems;
 	
 	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
@@ -56,6 +61,8 @@ public:
 	void buildFrameResource();
 	void buildPSO();
 	void drawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
+
+	void updateDynamicElements(const GameTimer& gt);
 
 	XMFLOAT3 getHillsNormal(float x, float z)const;
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();

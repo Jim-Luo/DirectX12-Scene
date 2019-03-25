@@ -123,6 +123,9 @@
     <Image Include="sky02.dds">
       <Filter>sky_model</Filter>
     </Image>
+    <Image Include="wood03.dds">
+      <Filter>fire_model</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="colors.hlsl">
@@ -142,6 +145,12 @@
     </None>
     <None Include="mSky.FBX">
       <Filter>sky_model</Filter>
+    </None>
+    <None Include="wood.FBX">
+      <Filter>fire_model</Filter>
+    </None>
+    <None Include="fire.hlsl">
+      <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>
