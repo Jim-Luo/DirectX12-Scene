@@ -85,7 +85,7 @@ float4 PS(VertexOut pin) : SV_Target
 	float4 ambient = float4(0.25f, 0.25f, 0.3f, 0.0f);
 	ambient = ambient * diffuseAlbedo;
 	Material mat = { diffuseAlbedo,gFresnelR0, shininess };
-	Light l = { float3(0.6f,0.6f,0.4f),float3(1.0f,1.0f,0.0f) };
+	Light l = { float3(0.6f,0.6f,0.4f),float3(0.0f,0.0f,0.0f) };
 	float3 directLight = ComputeDirectionalLight(l, mat, pin.NormalW, toEyeW);
 	float4 lit = float4(directLight,1.0f) + 5 * ambient;
 	lit.a = gDiffuseAlbedo.a;

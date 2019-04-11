@@ -9,8 +9,8 @@ bool Campfire::initDirect3D()
 	
 	mCmdList->Reset(mCmdAlloc.Get(), nullptr);
 	
-	mCamera.SetPosition(0.0f, 20.0f, -15.0f);
-	mFires["fire1"] = std::make_unique<Fire>(10, XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT4(0.8f, 0.4f, 0.0f, 1.0f), 0.2f, 3);
+	mCamera.SetPosition(0.0f, 10.0f, -15.0f);
+	mFires["fire1"] = std::make_unique<Fire>(70, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f, 0.4f, 0.0f, 1.0f), 0.08f, 10);
 	loadTexture();
 	buildRootSignature();
 	buildDescriptorHeaps();
@@ -158,6 +158,15 @@ void Campfire::Draw()
 	mCmdList->SetPipelineState(mPSOs["fire1"].Get());
 	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Fire]);
 
+	mCmdList->SetPipelineState(mPSOs["haystack"].Get());
+	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Haystack1]);
+
+	mCmdList->SetPipelineState(mPSOs["haystack"].Get());
+	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Haystack2]);
+
+	mCmdList->SetPipelineState(mPSOs["church"].Get());
+	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Church]);
+
 
 	mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(getCurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -274,7 +283,7 @@ void Campfire::loadTexture()
 
 	mTextures["sky"] = std::move(sky);
 
-
+	//campfire tex
 	auto camp = std::make_unique<Texture>();
 	camp->Name = "camp";
 	camp->Filename = L"wood03.dds";
@@ -282,6 +291,33 @@ void Campfire::loadTexture()
 	CreateDDSTextureFromFile12(mDevice.Get(), mCmdList.Get(), camp->Filename.c_str(), camp->Resource, camp->UploadHeap);
 
 	mTextures["camp"] = std::move(camp);
+	
+	auto fire = std::make_unique<Texture>();
+	fire->Name = "fire";
+	fire->Filename = L"fire.dds";
+
+	CreateDDSTextureFromFile12(mDevice.Get(), mCmdList.Get(), fire->Filename.c_str(), fire->Resource, fire->UploadHeap);
+
+	mTextures["fire"] = std::move(fire);
+
+	//haystack tex
+	auto haystack = std::make_unique<Texture>();
+	haystack->Name = "haystack";
+	haystack->Filename = L"haystack.dds";
+
+	CreateDDSTextureFromFile12(mDevice.Get(), mCmdList.Get(), haystack->Filename.c_str(), haystack->Resource, haystack->UploadHeap);
+
+	mTextures["haystack"] = std::move(haystack);
+
+	//church tex
+	auto church = std::make_unique<Texture>();
+	church->Name = "church";
+	church->Filename = L"church.dds";
+
+	CreateDDSTextureFromFile12(mDevice.Get(), mCmdList.Get(), church->Filename.c_str(), church->Resource, church->UploadHeap);
+
+	mTextures["church"] = std::move(church);
+
 
 }
 
@@ -289,7 +325,7 @@ void Campfire::buildDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NumDescriptors = 4;//
+	srvHeapDesc.NumDescriptors = 6;//
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	mDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(mSrvDescriptorHeap.GetAddressOf()));
 
@@ -330,8 +366,36 @@ void Campfire::buildDescriptorHeaps()
 
 	hDesc.Offset(1, mCBVSRVUAVDescriptorSize);
 
-	mDevice->CreateShaderResourceView(camp.Get(), &campSrvDesc, hDesc);
+	auto fire = mTextures["fire"]->Resource;
+	D3D12_SHADER_RESOURCE_VIEW_DESC fireSrvDesc = {};
+	fireSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	fireSrvDesc.Format = fire->GetDesc().Format;
+	fireSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	fireSrvDesc.Texture2D.MostDetailedMip = 0;
+	fireSrvDesc.Texture2D.MipLevels = -1;
+	mDevice->CreateShaderResourceView(fire.Get(), &fireSrvDesc, hDesc);
 
+	hDesc.Offset(1, mCBVSRVUAVDescriptorSize);
+
+	auto haystack = mTextures["haystack"]->Resource;
+	D3D12_SHADER_RESOURCE_VIEW_DESC haystackSrvDesc = {};
+	haystackSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	haystackSrvDesc.Format = haystack->GetDesc().Format;
+	haystackSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	haystackSrvDesc.Texture2D.MostDetailedMip = 0;
+	haystackSrvDesc.Texture2D.MipLevels = -1;
+	mDevice->CreateShaderResourceView(haystack.Get(), &haystackSrvDesc, hDesc);
+
+	hDesc.Offset(1, mCBVSRVUAVDescriptorSize);
+
+	auto church = mTextures["church"]->Resource;
+	D3D12_SHADER_RESOURCE_VIEW_DESC churchSrvDesc = {};
+	churchSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	churchSrvDesc.Format = church->GetDesc().Format;
+	churchSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	churchSrvDesc.Texture2D.MostDetailedMip = 0;
+	churchSrvDesc.Texture2D.MipLevels = -1;
+	mDevice->CreateShaderResourceView(church.Get(), &churchSrvDesc, hDesc);
 
 }
 
@@ -429,6 +493,45 @@ void Campfire::buildRootSignature()
 		fireSerializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(mEffectRootSignature["fire1"].GetAddressOf()));
 
+	CD3DX12_ROOT_PARAMETER haystackRootPara[4];
+	haystackRootPara[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	haystackRootPara[1].InitAsConstantBufferView(0);
+	haystackRootPara[2].InitAsConstantBufferView(1);
+	haystackRootPara[3].InitAsConstantBufferView(2);
+	CD3DX12_ROOT_SIGNATURE_DESC haystackRootSigDesc;
+	haystackRootSigDesc.Init(_countof(haystackRootPara), haystackRootPara, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	ComPtr<ID3DBlob> haystackSerializedRootSig = nullptr;
+	ComPtr<ID3DBlob> haystackError = nullptr;
+
+	HRESULT hr_haystack = D3D12SerializeRootSignature(&haystackRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, haystackSerializedRootSig.GetAddressOf(), haystackError.GetAddressOf());
+
+	if (fireError != nullptr)
+		OutputDebugStringA((char *)haystackError->GetBufferPointer());
+
+	mDevice->CreateRootSignature(0,
+		haystackSerializedRootSig->GetBufferPointer(),
+		haystackSerializedRootSig->GetBufferSize(),
+		IID_PPV_ARGS(mModelRootSignature["haystack"].GetAddressOf()));
+
+	CD3DX12_ROOT_PARAMETER churchRootPara[4];
+	churchRootPara[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	churchRootPara[1].InitAsConstantBufferView(0);
+	churchRootPara[2].InitAsConstantBufferView(1);
+	churchRootPara[3].InitAsConstantBufferView(2);
+	CD3DX12_ROOT_SIGNATURE_DESC churchRootSigDesc;
+	churchRootSigDesc.Init(_countof(churchRootPara), churchRootPara, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	ComPtr<ID3DBlob> churchSerializedRootSig = nullptr;
+	ComPtr<ID3DBlob> churchError = nullptr;
+
+	HRESULT hr_church = D3D12SerializeRootSignature(&churchRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, churchSerializedRootSig.GetAddressOf(), churchError.GetAddressOf());
+
+	if (churchError != nullptr)
+		OutputDebugStringA((char *)churchError->GetBufferPointer());
+
+	mDevice->CreateRootSignature(0,
+		churchSerializedRootSig->GetBufferPointer(),
+		churchSerializedRootSig->GetBufferSize(),
+		IID_PPV_ARGS(mModelRootSignature["church"].GetAddressOf()));
 }
 
 void Campfire::buildShaderAndInputLayout()
@@ -445,6 +548,14 @@ void Campfire::buildShaderAndInputLayout()
 	mShaders["fireVS"] = DXUtil::CompileShader(L"fire.hlsl", nullptr, "VS", "vs_5_0");
 	mShaders["fireGS"] = DXUtil::CompileShader(L"fire.hlsl", nullptr, "GS", "gs_5_0");
 	mShaders["firePS"] = DXUtil::CompileShader(L"fire.hlsl", nullptr, "PS", "ps_5_0");
+
+	mShaders["haystackVS"] = DXUtil::CompileShader(L"haystack.hlsl", nullptr, "VS", "vs_5_0");
+	mShaders["haystackPS"] = DXUtil::CompileShader(L"haystack.hlsl", nullptr, "PS", "ps_5_0");
+
+	mShaders["churchVS"] = DXUtil::CompileShader(L"church.hlsl", nullptr, "VS", "vs_5_0");
+	mShaders["churchPS"] = DXUtil::CompileShader(L"church.hlsl", nullptr, "PS", "ps_5_0");
+
+
 
 
 	mInputLayout = {
@@ -496,6 +607,27 @@ void Campfire::buildMaterials()
 	fire->roughness = 1.0f;
 
 	mMaterials["fire"] = std::move(fire);
+
+	auto haystack = std::make_unique<Material>();
+	haystack->matCBIndex = 4;
+	haystack->matName = "haystack";
+	haystack->diffuseSRVHeapIndex = 4;
+	haystack->diffuseAlbedo = XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f);
+	haystack->fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+	haystack->roughness = 0.7f;
+
+	mMaterials["haystack"] = std::move(haystack);
+
+	auto church = std::make_unique<Material>();
+	church->matCBIndex = 5;
+	church->matName = "church";
+	church->diffuseSRVHeapIndex = 5;
+	church->diffuseAlbedo = XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f);
+	church->fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+	church->roughness = 0.7f;
+
+	mMaterials["church"] = std::move(church);
+
 
 
 }
@@ -626,7 +758,7 @@ void Campfire::buildGeometry()
 
 
 	GeometryGenerator::MeshData_t wood;
-	mModelLoader.loadModel("wood.fbx", wood);
+	mModelLoader.loadModel("campfire1.FBX", wood);
 
 	std::vector<Vertex> vertices_wood(wood.Vertices.size());
 	for (int i = 0; i < wood.Vertices.size(); ++i)
@@ -707,6 +839,104 @@ void Campfire::buildGeometry()
 	geo_fire->DrawArgs["fire"] = submesh_fire;
 
 	mGeometries["fire"] = std::move(geo_fire);
+
+	GeometryGenerator::MeshData_t haystack;
+	mModelLoader.loadModel("haystack.FBX", haystack);
+
+	std::vector<Vertex> vertices_haystack(haystack.Vertices.size());
+	for (int i = 0; i < haystack.Vertices.size(); ++i)
+	{
+		vertices_haystack[i].pos = haystack.Vertices[i].pos;
+		vertices_haystack[i].col = haystack.Vertices[i].col;
+		vertices_haystack[i].nor = haystack.Vertices[i].nor;
+		vertices_haystack[i].tex.x = haystack.Vertices[i].tex.x;
+		vertices_haystack[i].tex.y = 1 - haystack.Vertices[i].tex.y;
+
+	}
+	const UINT vbByteSize_haystack = (UINT)vertices_haystack.size() * sizeof(Vertex);
+
+	std::vector<std::uint16_t> indices_haystack = haystack.getIndices16();
+	const UINT ibByteSize_haystack = (UINT)indices_haystack.size() * sizeof(std::uint16_t);
+
+	auto geo_haystack = std::make_unique<MeshGeometry>();
+	geo_haystack->Name = "haystack";
+
+	D3DCreateBlob(vbByteSize_haystack, &geo_haystack->VertexBufferCPU);
+	CopyMemory(geo_haystack->VertexBufferCPU->GetBufferPointer(), vertices_haystack.data(), vbByteSize_haystack);
+
+	D3DCreateBlob(ibByteSize_haystack, &geo_haystack->IndexBufferCPU);
+	CopyMemory(geo_haystack->IndexBufferCPU->GetBufferPointer(), indices_haystack.data(), ibByteSize_haystack);
+
+	geo_haystack->VertexBufferGPU = DXUtil::createDefaultBuffer(mDevice.Get(),
+		mCmdList.Get(), vertices_haystack.data(), vbByteSize_haystack, geo_haystack->VertexBufferUpload);
+
+	geo_haystack->IndexBufferGPU = DXUtil::createDefaultBuffer(mDevice.Get(),
+		mCmdList.Get(), indices_haystack.data(), ibByteSize_haystack, geo_haystack->IndexBufferUpload);
+
+	geo_haystack->VertexBufferStride = sizeof(Vertex);
+	geo_haystack->VertexBufferByteSize = vbByteSize_haystack;
+	geo_haystack->IndexBufferByteSize = ibByteSize_haystack;
+	geo_haystack->IndexFormat = DXGI_FORMAT_R16_UINT;
+
+
+	SubmeshGeometry submesh_haystack;
+	submesh_haystack.IndexCount = (UINT)indices_haystack.size();
+	submesh_haystack.StartIndexLocation = 0;
+	submesh_haystack.BaseVertexLocation = 0;
+
+	geo_haystack->DrawArgs["haystack"] = submesh_haystack;
+
+	mGeometries["haystack"] = std::move(geo_haystack);
+
+
+	GeometryGenerator::MeshData_t church;
+	mModelLoader.loadModel("church.FBX", church);
+
+	std::vector<Vertex> vertices_church(church.Vertices.size());
+	for (int i = 0; i < church.Vertices.size(); ++i)
+	{
+		vertices_church[i].pos = church.Vertices[i].pos;
+		vertices_church[i].col = church.Vertices[i].col;
+		vertices_church[i].nor = church.Vertices[i].nor;
+		vertices_church[i].tex.x = church.Vertices[i].tex.x;
+		vertices_church[i].tex.y = 1 - church.Vertices[i].tex.y;
+
+	}
+	const UINT vbByteSize_church = (UINT)vertices_church.size() * sizeof(Vertex);
+
+	std::vector<std::uint16_t> indices_church = church.getIndices16();
+	const UINT ibByteSize_church = (UINT)indices_church.size() * sizeof(std::uint16_t);
+
+	auto geo_church = std::make_unique<MeshGeometry>();
+	geo_church->Name = "church";
+
+	D3DCreateBlob(vbByteSize_church, &geo_church->VertexBufferCPU);
+	CopyMemory(geo_church->VertexBufferCPU->GetBufferPointer(), vertices_church.data(), vbByteSize_church);
+
+	D3DCreateBlob(ibByteSize_church, &geo_church->IndexBufferCPU);
+	CopyMemory(geo_church->IndexBufferCPU->GetBufferPointer(), indices_church.data(), ibByteSize_church);
+
+	geo_church->VertexBufferGPU = DXUtil::createDefaultBuffer(mDevice.Get(),
+		mCmdList.Get(), vertices_church.data(), vbByteSize_church, geo_church->VertexBufferUpload);
+
+	geo_church->IndexBufferGPU = DXUtil::createDefaultBuffer(mDevice.Get(),
+		mCmdList.Get(), indices_church.data(), ibByteSize_church, geo_church->IndexBufferUpload);
+
+	geo_church->VertexBufferStride = sizeof(Vertex);
+	geo_church->VertexBufferByteSize = vbByteSize_church;
+	geo_church->IndexBufferByteSize = ibByteSize_church;
+	geo_church->IndexFormat = DXGI_FORMAT_R16_UINT;
+
+
+	SubmeshGeometry submesh_church;
+	submesh_church.IndexCount = (UINT)indices_church.size();
+	submesh_church.StartIndexLocation = 0;
+	submesh_church.BaseVertexLocation = 0;
+
+	geo_church->DrawArgs["church"] = submesh_church;
+
+	mGeometries["church"] = std::move(geo_church);
+
 }
 
 
@@ -772,6 +1002,50 @@ void Campfire::buildRenderItem()
 	mDynamicRitems["fire1"] = fireRitem.get();
 	mAllRitems.push_back(std::move(fireRitem));
 
+	auto haystack1Ritem = std::make_unique<RenderItem>();
+	haystack1Ritem->World = MathHelper::Identity4x4();
+	XMStoreFloat4x4(&haystack1Ritem->World, XMMatrixTranslation(25.0f, 0.0f, 15.0f) * XMMatrixScaling(10.0f, 10.0f, 10.0f));
+	haystack1Ritem->TexTransform = MathHelper::Identity4x4();
+	haystack1Ritem->Geo = mGeometries["haystack"].get();
+	haystack1Ritem->Mat = mMaterials["haystack"].get();
+	haystack1Ritem->objCBIndex = 4;
+	haystack1Ritem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	haystack1Ritem->BaseVertexLocation = haystack1Ritem->Geo->DrawArgs["haystack"].BaseVertexLocation;
+	haystack1Ritem->StartIndexLocation = haystack1Ritem->Geo->DrawArgs["haystack"].StartIndexLocation;
+	haystack1Ritem->IndexCount = haystack1Ritem->Geo->DrawArgs["haystack"].IndexCount;
+	mRitemLayer[(int)RenderLayer::Haystack1].push_back(haystack1Ritem.get());
+
+	mAllRitems.push_back(std::move(haystack1Ritem));
+
+	auto haystack2Ritem = std::make_unique<RenderItem>();
+	haystack2Ritem->World = MathHelper::Identity4x4();
+	XMStoreFloat4x4(&haystack2Ritem->World, XMMatrixTranslation(25.0f, 0.0f, 25.0f) * XMMatrixScaling(10.0f, 10.0f, 10.0f));
+	haystack2Ritem->TexTransform = MathHelper::Identity4x4();
+	haystack2Ritem->Geo = mGeometries["haystack"].get();
+	haystack2Ritem->Mat = mMaterials["haystack"].get();
+	haystack2Ritem->objCBIndex = 5;
+	haystack2Ritem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	haystack2Ritem->BaseVertexLocation = haystack2Ritem->Geo->DrawArgs["haystack"].BaseVertexLocation;
+	haystack2Ritem->StartIndexLocation = haystack2Ritem->Geo->DrawArgs["haystack"].StartIndexLocation;
+	haystack2Ritem->IndexCount = haystack2Ritem->Geo->DrawArgs["haystack"].IndexCount;
+	mRitemLayer[(int)RenderLayer::Haystack2].push_back(haystack2Ritem.get());
+
+	mAllRitems.push_back(std::move(haystack2Ritem));
+
+	auto churchRitem = std::make_unique<RenderItem>();
+	churchRitem->World = MathHelper::Identity4x4();
+	XMStoreFloat4x4(&churchRitem->World, XMMatrixTranslation(-50.0f, 0.0f, 50.0f) * XMMatrixScaling(10.0f, 10.0f, 10.0f));
+	churchRitem->TexTransform = MathHelper::Identity4x4();
+	churchRitem->Geo = mGeometries["church"].get();
+	churchRitem->Mat = mMaterials["church"].get();
+	churchRitem->objCBIndex = 6;
+	churchRitem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	churchRitem->BaseVertexLocation = churchRitem->Geo->DrawArgs["church"].BaseVertexLocation;
+	churchRitem->StartIndexLocation = churchRitem->Geo->DrawArgs["church"].StartIndexLocation;
+	churchRitem->IndexCount = churchRitem->Geo->DrawArgs["church"].IndexCount;
+	mRitemLayer[(int)RenderLayer::Church].push_back(churchRitem.get());
+
+	mAllRitems.push_back(std::move(churchRitem));
 
 }
 
@@ -871,11 +1145,11 @@ void Campfire::buildPSO()
 	fireBlendDesc.BlendEnable = true;
 	fireBlendDesc.LogicOpEnable = false;
 	fireBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	fireBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	fireBlendDesc.DestBlend = D3D12_BLEND_ONE;
 	fireBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-	fireBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-	fireBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-	fireBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	fireBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+	fireBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+	fireBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_MAX;
 	fireBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
 	fireBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
@@ -910,6 +1184,60 @@ void Campfire::buildPSO()
 		mShaders["firePS"]->GetBufferSize()
 	};
 	mDevice->CreateGraphicsPipelineState(&firePSO, IID_PPV_ARGS(mPSOs["fire1"].GetAddressOf()));
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC haystackPSO;
+	ZeroMemory(&haystackPSO, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	haystackPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	haystackPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	haystackPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	haystackPSO.SampleMask = UINT_MAX;
+	haystackPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	haystackPSO.NumRenderTargets = 1;
+	haystackPSO.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	haystackPSO.pRootSignature = mModelRootSignature["haystack"].Get();
+	haystackPSO.InputLayout = { mInputLayout.data(),(UINT)mInputLayout.size() };
+	haystackPSO.SampleDesc.Count = 1;
+	haystackPSO.SampleDesc.Quality = 0;
+	haystackPSO.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	haystackPSO.VS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["haystackVS"]->GetBufferPointer()),
+		mShaders["haystackVS"]->GetBufferSize()
+	};
+	haystackPSO.PS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["haystackPS"]->GetBufferPointer()),
+		mShaders["haystackPS"]->GetBufferSize()
+	};
+	mDevice->CreateGraphicsPipelineState(&haystackPSO, IID_PPV_ARGS(mPSOs["haystack"].GetAddressOf()));
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC churchPSO;
+	ZeroMemory(&churchPSO, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	churchPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	churchPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	churchPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	churchPSO.SampleMask = UINT_MAX;
+	churchPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	churchPSO.NumRenderTargets = 1;
+	churchPSO.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	churchPSO.pRootSignature = mModelRootSignature["church"].Get();
+	churchPSO.InputLayout = { mInputLayout.data(),(UINT)mInputLayout.size() };
+	churchPSO.SampleDesc.Count = 1;
+	churchPSO.SampleDesc.Quality = 0;
+	churchPSO.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	churchPSO.VS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["churchVS"]->GetBufferPointer()),
+		mShaders["churchVS"]->GetBufferSize()
+	};
+	churchPSO.PS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["churchPS"]->GetBufferPointer()),
+		mShaders["churchPS"]->GetBufferSize()
+	};
+	mDevice->CreateGraphicsPipelineState(&churchPSO, IID_PPV_ARGS(mPSOs["church"].GetAddressOf()));
+
+	
 
 }
 

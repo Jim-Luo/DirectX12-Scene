@@ -57,6 +57,7 @@ struct GeoOut
 	float4 PosH   : SV_POSITION;
 	float3 PosW   : POSITION;
 	float4 Color  : COLOR;
+	float2 TexC   : TEXCOORD;
 	uint PrimID   : SV_PrimitiveID;
 };
 VertexOut VS(VertexIn vin)
@@ -87,24 +88,30 @@ void GS(point VertexOut gin[1],
 	float3 right = cross(up, look);
 
 	
-	float halfWidth =0.3f;
-	float halfHeight = 0.3f;
+	float halfWidth =0.5f;
+	float halfHeight = 1.00f;
 
-	float4 v[4];
+	float4 v[3];
 	v[0] = float4(gin[0].PosW + halfWidth * right - halfHeight * up, 1.0f);
-	v[1] = float4(gin[0].PosW + halfWidth * right + halfHeight * up, 1.0f);
+	v[1] = float4(gin[0].PosW + halfHeight * up, 1.0f);
 	v[2] = float4(gin[0].PosW - halfWidth * right - halfHeight * up, 1.0f);
-	v[3] = float4(gin[0].PosW - halfWidth * right + halfHeight * up, 1.0f);
 
-	
+	float2 texC[3] =
+	{
+		float2(0.5f,0.0f),
+		float2(1.0f,1.0f),
+		float2(0.0f,1.0f)
+	};
+
 
 	GeoOut gout;
 	[unroll]
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < 3; ++i)
 	{
 		gout.PosH = mul(v[i], gViewProj);
 		gout.PosW = v[i].xyz;
 		gout.Color = col;
+		gout.TexC = texC[i];
 		gout.PrimID = primID;
 
 		triStream.Append(gout);
@@ -114,6 +121,8 @@ void GS(point VertexOut gin[1],
 
 float4 PS(GeoOut pin) : SV_Target
 {
-	return pin.Color;
+	float4 diffuseAlbedo = gDiffuseMap.Sample(gsamAnisotropicWrap,pin.TexC);
+	float4 lit = diffuseAlbedo * pin.Color;
+	return  lit;
 }
 

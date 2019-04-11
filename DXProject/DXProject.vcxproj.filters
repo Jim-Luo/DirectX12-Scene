@@ -25,6 +25,12 @@
     <Filter Include="fire_model">
       <UniqueIdentifier>{82ca2986-8177-463f-99f0-0b5fc394bca2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="haystack_model">
+      <UniqueIdentifier>{5cc32d71-0730-45e1-840a-7aa67477f937}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="church_model">
+      <UniqueIdentifier>{0ce57f4f-b064-47b2-90fa-66f769281d3b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -69,6 +75,9 @@
     <ClInclude Include="ModelLoader.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Smoke.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -101,6 +110,9 @@
     <ClCompile Include="ModelLoader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Smoke.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DXProject.rc">
@@ -117,14 +129,20 @@
     <Image Include="grass.dds">
       <Filter>Textures</Filter>
     </Image>
-    <Image Include="campfire.fbm\camp.dds">
-      <Filter>fire_model</Filter>
-    </Image>
     <Image Include="sky02.dds">
       <Filter>sky_model</Filter>
     </Image>
     <Image Include="wood03.dds">
       <Filter>fire_model</Filter>
+    </Image>
+    <Image Include="fire.dds">
+      <Filter>fire_model</Filter>
+    </Image>
+    <Image Include="haystack.dds">
+      <Filter>haystack_model</Filter>
+    </Image>
+    <Image Include="church.dds">
+      <Filter>church_model</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
@@ -140,9 +158,6 @@
     <None Include="camp.hlsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="campfire.fbx">
-      <Filter>fire_model</Filter>
-    </None>
     <None Include="mSky.FBX">
       <Filter>sky_model</Filter>
     </None>
@@ -150,6 +165,21 @@
       <Filter>fire_model</Filter>
     </None>
     <None Include="fire.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="campfire1.FBX">
+      <Filter>fire_model</Filter>
+    </None>
+    <None Include="haystack.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="haystack.FBX">
+      <Filter>haystack_model</Filter>
+    </None>
+    <None Include="church.FBX">
+      <Filter>church_model</Filter>
+    </None>
+    <None Include="church.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
