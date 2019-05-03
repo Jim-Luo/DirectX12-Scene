@@ -1,11 +1,16 @@
 ﻿  Campfire.cpp
-c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(713): warning C4018: “<”: 有符号/无符号不匹配
-c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(764): warning C4018: “<”: 有符号/无符号不匹配
-c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(811): warning C4267: “=”: 从“size_t”转换到“_Ty”，可能丢失数据
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(863): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(914): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(961): warning C4267: “=”: 从“size_t”转换到“_Ty”，可能丢失数据
           with
           [
               _Ty=GeometryGenerator::uint16
           ]
-c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(847): warning C4018: “<”: 有符号/无符号不匹配
-c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(896): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(997): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(1046): warning C4018: “<”: 有符号/无符号不匹配
+c:\users\luoga\desktop\directx\dxproject\dxproject\campfire.cpp(1094): warning C4267: “=”: 从“size_t”转换到“_Ty”，可能丢失数据
+          with
+          [
+              _Ty=GeometryGenerator::uint16
+          ]
   DXProject.vcxproj -> C:\Users\luoga\Desktop\DirectX\DXProject\Debug\DXProject.exe

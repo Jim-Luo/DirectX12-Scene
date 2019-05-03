@@ -17,7 +17,7 @@ Smoke::Smoke(int count, XMFLOAT3 position, XMFLOAT4 color, float dt, int cond)
 		for (size_t j = 0; j < count; j++)
 		{
 			mSolutions[i][j].color = color;
-			mSolutions[i][j].position = XMFLOAT3(position.x + randPos(), position.y + -200 * abs(randPos() * randPos()) + 400, position.z + randPos());
+			mSolutions[i][j].position = XMFLOAT3(position.x + randPos(), position.y + randPos(), position.z + randPos());
 		}
 	}
 }

@@ -31,6 +31,9 @@
     <Filter Include="church_model">
       <UniqueIdentifier>{0ce57f4f-b064-47b2-90fa-66f769281d3b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="smoke_model">
+      <UniqueIdentifier>{7548b00c-38b6-46c4-a6d8-4649e2c58f1d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -144,6 +147,9 @@
     <Image Include="church.dds">
       <Filter>church_model</Filter>
     </Image>
+    <Image Include="smoke.dds">
+      <Filter>smoke_model</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="colors.hlsl">
@@ -180,6 +186,12 @@
       <Filter>church_model</Filter>
     </None>
     <None Include="church.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="fireCS.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="smoke.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

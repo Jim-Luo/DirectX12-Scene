@@ -10,7 +10,12 @@ bool Campfire::initDirect3D()
 	mCmdList->Reset(mCmdAlloc.Get(), nullptr);
 	
 	mCamera.SetPosition(0.0f, 10.0f, -15.0f);
-	mFires["fire1"] = std::make_unique<Fire>(70, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f, 0.4f, 0.0f, 1.0f), 0.08f, 10);
+	mFires["fire1"] = std::make_unique<Fire>(size, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f * color, 0.4f * color, 0.0f * color, 1.0f), concentration, 10);
+	mFires["fire1"]->EnableCS(mDevice.Get(), mCmdList.Get());
+	mSmoke["smoke1"] = std::make_unique<Smoke>(70, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), 0.15f, 7);
+
+	
+
 	loadTexture();
 	buildRootSignature();
 	buildDescriptorHeaps();
@@ -119,6 +124,8 @@ void Campfire::Update(const GameTimer& gt)
 	}
 
 	updateDynamicElements(gt);
+
+	
 	
 
 }
@@ -134,13 +141,14 @@ void Campfire::Draw()
 	mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(getCurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-	mCmdList->ClearRenderTargetView(getCurrentBackBufferView(), Colors::MediumPurple, 0, nullptr);
+	mCmdList->ClearRenderTargetView(getCurrentBackBufferView(), Colors::AliceBlue, 0, nullptr);
 	mCmdList->ClearDepthStencilView(getDepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	mCmdList->OMSetRenderTargets(1, &getCurrentBackBufferView(), true, &getDepthStencilView());
 
 	ID3D12DescriptorHeap *descriptorheap[] = { mSrvDescriptorHeap.Get() };
 	mCmdList->SetDescriptorHeaps(_countof(descriptorheap), descriptorheap);
+	
 
 	mCmdList->SetGraphicsRootSignature(mTerranRootSignature.Get());
 
@@ -167,6 +175,11 @@ void Campfire::Draw()
 	mCmdList->SetPipelineState(mPSOs["church"].Get());
 	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Church]);
 
+	mCmdList->SetPipelineState(mPSOs["smoke"].Get());
+	drawRenderItems(mCmdList.Get(), mRitemLayer[(int)RenderLayer::Smoke]);
+
+
+	//mFires["fire1"]->UpdateCS(mCmdList.Get(), mEffectRootSignature["fireGPU"].Get(), mPSOs["fireCS"].Get());
 
 	mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(getCurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -250,6 +263,43 @@ void Campfire::OnKeyboardInput(const GameTimer &gt)
 
 	if (GetAsyncKeyState('D') & 0x8000)
 		mCamera.Strafe(10.0f*dt);
+	
+	if (GetAsyncKeyState('1') & 0x8000)
+	{
+		color <= 0.0f ? color = 0.0f : color -= 0.01f;
+		mFires["fire1"].reset(new Fire(size, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f * color, 0.4f, 0.0f , 1.0f), concentration, 10));
+	}
+		
+
+	if (GetAsyncKeyState('2') & 0x8000)
+	{
+		color >= 1.0f ? color = 1.0f : color += 0.01f;
+		mFires["fire1"].reset(new Fire(size, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f * color, 0.4f, 0.0f, 1.0f), concentration, 10));
+	}
+
+	if (GetAsyncKeyState('3') & 0x8000)
+	{
+		concentration <= 0.01f ? concentration = 0.01f : concentration -= 0.01f;
+		mFires["fire1"].reset(new Fire(size, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f * color, 0.4f, 0.0f, 1.0f), concentration, 10));
+	}
+
+	if (GetAsyncKeyState('4') & 0x8000)
+	{
+		concentration += 0.01f;
+		mFires["fire1"].reset(new Fire(size, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f * color, 0.4f, 0.0f, 1.0f), concentration, 10));
+	}
+
+	if (GetAsyncKeyState('5') & 0x8000)
+	{
+		size <= 10 ? size = 10 : size -= 10;
+		mFires["fire1"].reset(new Fire(size, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f * color, 0.4f, 0.0f, 1.0f), concentration, 10));
+	}
+	if (GetAsyncKeyState('6') & 0x8000)
+	{
+		size >= 100 ? size = 100 : size += 10;
+		mFires["fire1"].reset(new Fire(size, XMFLOAT3(0.0f, 2.0f, 0.0f), XMFLOAT4(0.8f * color, 0.4f, 0.0f, 1.0f), concentration, 10));
+	}
+		
 
 	mCamera.UpdateViewMatrix();
 }
@@ -318,6 +368,15 @@ void Campfire::loadTexture()
 
 	mTextures["church"] = std::move(church);
 
+	//smoke tex
+	auto smoke = std::make_unique<Texture>();
+	smoke->Name = "smoke";
+	smoke->Filename = L"smoke.dds";
+
+	CreateDDSTextureFromFile12(mDevice.Get(), mCmdList.Get(), smoke->Filename.c_str(), smoke->Resource, smoke->UploadHeap);
+
+	mTextures["smoke"] = std::move(smoke);
+
 
 }
 
@@ -325,7 +384,7 @@ void Campfire::buildDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NumDescriptors = 6;//
+	srvHeapDesc.NumDescriptors = 7 + mFires["fire2"]->DescriptorCount();//
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	mDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(mSrvDescriptorHeap.GetAddressOf()));
 
@@ -396,6 +455,23 @@ void Campfire::buildDescriptorHeaps()
 	churchSrvDesc.Texture2D.MostDetailedMip = 0;
 	churchSrvDesc.Texture2D.MipLevels = -1;
 	mDevice->CreateShaderResourceView(church.Get(), &churchSrvDesc, hDesc);
+
+	hDesc.Offset(1, mCBVSRVUAVDescriptorSize);
+
+	auto smoke = mTextures["smoke"]->Resource;
+	D3D12_SHADER_RESOURCE_VIEW_DESC smokeSrvDesc = {};
+	smokeSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	smokeSrvDesc.Format = smoke->GetDesc().Format;
+	smokeSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	smokeSrvDesc.Texture2D.MostDetailedMip = 0;
+	smokeSrvDesc.Texture2D.MipLevels = -1;
+	mDevice->CreateShaderResourceView(smoke.Get(), &smokeSrvDesc, hDesc);
+
+
+	mFires["fire1"]->BuildDescriptors(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), 7, mCBVSRVUAVDescriptorSize),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart(), 7, mCBVSRVUAVDescriptorSize),
+		mCBVSRVUAVDescriptorSize);
 
 }
 
@@ -532,6 +608,65 @@ void Campfire::buildRootSignature()
 		churchSerializedRootSig->GetBufferPointer(),
 		churchSerializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(mModelRootSignature["church"].GetAddressOf()));
+
+	CD3DX12_ROOT_PARAMETER smokeRootPara[4];
+	smokeRootPara[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	smokeRootPara[1].InitAsConstantBufferView(0);
+	smokeRootPara[2].InitAsConstantBufferView(1);
+	smokeRootPara[3].InitAsConstantBufferView(2);
+	CD3DX12_ROOT_SIGNATURE_DESC smokeRootSigDesc;
+	smokeRootSigDesc.Init(_countof(smokeRootPara), smokeRootPara, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	ComPtr<ID3DBlob> smokeSerializedRootSig = nullptr;
+	ComPtr<ID3DBlob> smokeError = nullptr;
+
+	HRESULT hr_smoke = D3D12SerializeRootSignature(&smokeRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, smokeSerializedRootSig.GetAddressOf(), smokeError.GetAddressOf());
+
+	if (smokeError != nullptr)
+		OutputDebugStringA((char *)smokeError->GetBufferPointer());
+
+	mDevice->CreateRootSignature(0,
+		smokeSerializedRootSig->GetBufferPointer(),
+		smokeSerializedRootSig->GetBufferSize(),
+		IID_PPV_ARGS(mEffectRootSignature["smoke"].GetAddressOf()));
+
+	//GPU Fire
+	CD3DX12_DESCRIPTOR_RANGE uavTable0;
+	uavTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+
+	CD3DX12_DESCRIPTOR_RANGE uavTable1;
+	uavTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+
+
+	// Root parameter can be a table, root descriptor or root constants.
+	CD3DX12_ROOT_PARAMETER slotRootParameterFire[3];
+
+	// Perfomance TIP: Order from most frequent to least frequent.
+	slotRootParameterFire[0].InitAsConstants(6, 0);
+	slotRootParameterFire[1].InitAsDescriptorTable(1, &uavTable0);
+	slotRootParameterFire[2].InitAsDescriptorTable(1, &uavTable1);
+
+	// A root signature is an array of root parameters.
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDescFire(3, slotRootParameterFire,
+		0, nullptr,
+		D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+	// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
+	ComPtr<ID3DBlob> serializedRootSigFire = nullptr;
+	ComPtr<ID3DBlob> errorBlobFire = nullptr;
+	HRESULT hr_fire2 = D3D12SerializeRootSignature(&rootSigDescFire, D3D_ROOT_SIGNATURE_VERSION_1,
+		serializedRootSigFire.GetAddressOf(), errorBlobFire.GetAddressOf());
+
+	if (errorBlobFire != nullptr)
+	{
+		::OutputDebugStringA((char*)errorBlobFire->GetBufferPointer());
+	}
+
+
+	mDevice->CreateRootSignature(
+		0,
+		serializedRootSigFire->GetBufferPointer(),
+		serializedRootSigFire->GetBufferSize(),
+		IID_PPV_ARGS(mEffectRootSignature["fireGPU"].GetAddressOf()));
 }
 
 void Campfire::buildShaderAndInputLayout()
@@ -554,6 +689,12 @@ void Campfire::buildShaderAndInputLayout()
 
 	mShaders["churchVS"] = DXUtil::CompileShader(L"church.hlsl", nullptr, "VS", "vs_5_0");
 	mShaders["churchPS"] = DXUtil::CompileShader(L"church.hlsl", nullptr, "PS", "ps_5_0");
+
+	mShaders["smokeVS"] = DXUtil::CompileShader(L"smoke.hlsl", nullptr, "VS", "vs_5_0");
+	mShaders["smokeGS"] = DXUtil::CompileShader(L"smoke.hlsl", nullptr, "GS", "gs_5_0");
+	mShaders["smokePS"] = DXUtil::CompileShader(L"smoke.hlsl", nullptr, "PS", "ps_5_0");
+
+	mShaders["fireCS"] = DXUtil::CompileShader(L"fireCS.hlsl", nullptr, "CS", "cs_5_0");
 
 
 
@@ -628,6 +769,15 @@ void Campfire::buildMaterials()
 
 	mMaterials["church"] = std::move(church);
 
+	auto smoke = std::make_unique<Material>();
+	smoke->matCBIndex = 6;
+	smoke->matName = "smoke";
+	smoke->diffuseSRVHeapIndex = 6;
+	smoke->diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	smoke->fresnelR0 = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	smoke->roughness = 1.0f;
+
+	mMaterials["smoke"] = std::move(smoke);
 
 
 }
@@ -643,8 +793,8 @@ void Campfire::buildGeometry()
 	{
 		auto& p = grid.Vertices[i].pos;
 		vertices[i].pos = p;
-		vertices[i].pos.y = 0.0f;// 0.1*(0.3f*(p.z*sinf(0.1f*p.x) + p.x * cosf(0.1f*p.z)));
-		vertices[i].nor = XMFLOAT3(0.0f, 1.0f, 0.0f);// getHillsNormal(p.x, p.z);
+		vertices[i].pos.y = 0.0f;// 0.3f*(p.z*sinf(0.1f*p.x) + p.x * cosf(0.1f*p.z));
+		vertices[i].nor = getHillsNormal(p.x, p.z);
 		vertices[i].tex = grid.Vertices[i].tex;
 		if (vertices[i].pos.y < -10.0f)
 		{
@@ -937,6 +1087,41 @@ void Campfire::buildGeometry()
 
 	mGeometries["church"] = std::move(geo_church);
 
+
+	std::vector<std::uint16_t> indices_smoke(mSmoke["smoke1"]->VertexCount());
+	for (size_t i = 0; i < indices_smoke.size(); i++)
+	{
+		indices_smoke[i] = i;
+	}
+
+	UINT vbByteSize_smoke = mSmoke["smoke1"]->VertexCount() * sizeof(Vertex);
+	UINT ibByteSize_smoke = mSmoke["smoke1"]->VertexCount() * sizeof(std::uint16_t);
+
+	auto geo_smoke = std::make_unique<MeshGeometry>();
+	geo_smoke->Name = "smoke1";
+
+	geo_smoke->VertexBufferCPU = nullptr;
+	geo_smoke->VertexBufferGPU = nullptr;
+
+	D3DCreateBlob(ibByteSize_smoke, &geo_smoke->IndexBufferCPU);
+	CopyMemory(geo_smoke->IndexBufferCPU->GetBufferPointer(), indices_smoke.data(), ibByteSize_smoke);
+
+	geo_smoke->IndexBufferGPU = DXUtil::createDefaultBuffer(mDevice.Get(),
+		mCmdList.Get(), indices_smoke.data(), ibByteSize_smoke, geo_smoke->IndexBufferUpload);
+
+	geo_smoke->VertexBufferStride = sizeof(Vertex);
+	geo_smoke->VertexBufferByteSize = vbByteSize_smoke;
+	geo_smoke->IndexBufferByteSize = ibByteSize_smoke;
+	geo_smoke->IndexFormat = DXGI_FORMAT_R16_UINT;
+
+	SubmeshGeometry submesh_smoke;
+	submesh_smoke.IndexCount = (UINT)indices_smoke.size();
+	submesh_smoke.StartIndexLocation = 0;
+	submesh_smoke.BaseVertexLocation = 0;
+
+	geo_smoke->DrawArgs["smoke"] = submesh_smoke;
+
+	mGeometries["smoke"] = std::move(geo_smoke);
 }
 
 
@@ -1047,6 +1232,23 @@ void Campfire::buildRenderItem()
 
 	mAllRitems.push_back(std::move(churchRitem));
 
+	auto smoke1Ritem = std::make_unique<RenderItem>();
+	smoke1Ritem->World = MathHelper::Identity4x4();
+	XMStoreFloat4x4(&smoke1Ritem->World, XMMatrixTranslation(-10.0f, 0.0f, 10.0f));
+	smoke1Ritem->TexTransform = MathHelper::Identity4x4();
+	smoke1Ritem->Geo = mGeometries["smoke"].get();
+	smoke1Ritem->Mat = mMaterials["smoke"].get();
+	smoke1Ritem->objCBIndex = 7;
+	smoke1Ritem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+	smoke1Ritem->BaseVertexLocation = smoke1Ritem->Geo->DrawArgs["smoke"].BaseVertexLocation;
+	smoke1Ritem->StartIndexLocation = smoke1Ritem->Geo->DrawArgs["smoke"].StartIndexLocation;
+	smoke1Ritem->IndexCount = smoke1Ritem->Geo->DrawArgs["smoke"].IndexCount;
+	mRitemLayer[(int)RenderLayer::Smoke].push_back(smoke1Ritem.get());
+
+	mDynamicRitems["smoke"] = smoke1Ritem.get();
+	mAllRitems.push_back(std::move(smoke1Ritem));
+	
+	
 }
 
 void Campfire::buildFrameResource()
@@ -1055,6 +1257,7 @@ void Campfire::buildFrameResource()
 	{
 		auto frameResource = std::make_unique<FrameResource>(mDevice.Get(), 1, (UINT)mAllRitems.size(), (UINT)mMaterials.size());
 		frameResource.get()->addDynamicElements("fire1", mFires["fire1"]->VertexCount());
+		frameResource.get()->addDynamicElements("smoke", mSmoke["smoke1"]->VertexCount());
 		mFrameResources.push_back(std::move(frameResource));
 	}
 }
@@ -1237,6 +1440,49 @@ void Campfire::buildPSO()
 	};
 	mDevice->CreateGraphicsPipelineState(&churchPSO, IID_PPV_ARGS(mPSOs["church"].GetAddressOf()));
 
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC smokePSO;
+	ZeroMemory(&smokePSO, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	smokePSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	smokePSO.BlendState.RenderTarget[0] = fireBlendDesc;
+	smokePSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	smokePSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	smokePSO.SampleMask = UINT_MAX;
+	smokePSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	smokePSO.NumRenderTargets = 1;
+	smokePSO.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	smokePSO.InputLayout = { mInputLayout.data(),(UINT)mInputLayout.size() };
+	smokePSO.SampleDesc.Count = 1;
+	smokePSO.SampleDesc.Quality = 0;
+	smokePSO.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	smokePSO.VS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["smokeVS"]->GetBufferPointer()),
+		mShaders["smokeVS"]->GetBufferSize()
+	};
+	smokePSO.GS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["smokeGS"]->GetBufferPointer()),
+		mShaders["smokeGS"]->GetBufferSize()
+	};
+	smokePSO.PS =
+	{
+		reinterpret_cast<BYTE *>(mShaders["smokePS"]->GetBufferPointer()),
+		mShaders["smokePS"]->GetBufferSize()
+	};
+	smokePSO.pRootSignature = mEffectRootSignature["smoke"].Get();
+	mDevice->CreateGraphicsPipelineState(&smokePSO, IID_PPV_ARGS(mPSOs["smoke"].GetAddressOf()));
+
+	
+
+	D3D12_COMPUTE_PIPELINE_STATE_DESC fireCSPSO = {};
+	fireCSPSO.pRootSignature = mEffectRootSignature["fireGPU"].Get();
+	fireCSPSO.CS =
+	{
+		reinterpret_cast<BYTE*>(mShaders["fireCS"]->GetBufferPointer()),
+		mShaders["fireCS"]->GetBufferSize()
+	};
+	fireCSPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	mDevice->CreateComputePipelineState(&fireCSPSO, IID_PPV_ARGS(&mPSOs["fireCS"]));
 	
 
 }
@@ -1298,6 +1544,21 @@ void Campfire::updateDynamicElements(const GameTimer & gt)
 
 	mDynamicRitems["fire1"]->Geo->VertexBufferGPU = currfire1VB->getUploadBuffer();
 
+	mSmoke["smoke1"]->Update(gt.DeltaTime());
+	auto currsmokeVB = mCurrFrameResource->dynamicElement["smoke"].get();
+	for (int i = 0; i < mSmoke["smoke1"]->VertexCount(); ++i)
+	{
+		Vertex v;
+
+		v.pos = mSmoke["smoke1"]->Position(i).position;
+		v.col = mSmoke["smoke1"]->Position(i).color;
+		v.nor = XMFLOAT3(1.0f, 1.0f, 1.0f);
+		v.tex = XMFLOAT2(1.0f, 1.0f);
+
+		currsmokeVB->CopyData(i, v);
+	}
+
+	mDynamicRitems["smoke"]->Geo->VertexBufferGPU = currsmokeVB->getUploadBuffer();
 	
 }
 

@@ -347,6 +347,7 @@ enum class RenderLayer :int
 	Haystack1,
 	Haystack2,
 	Church,
+	Smoke,
 	Count
 };
 class DXUtil

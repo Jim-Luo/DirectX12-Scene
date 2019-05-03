@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "ModelLoader.h"
 #include "Fire.h"
+#include "Smoke.h"
 
 class Campfire :
 	public DXSample
@@ -16,6 +17,10 @@ private:
 	Camera mCamera;
 
 	ModelLoader mModelLoader;
+
+	float color = 1.0f;
+	int size = 10;
+	float concentration = 0.08f;
 
 	
 protected:
@@ -30,6 +35,7 @@ protected:
 	PassConstants mMainPassCB;
 
 	std::unordered_map<std::string, std::unique_ptr<Fire>> mFires;
+	std::unordered_map<std::string, std::unique_ptr<Smoke>> mSmoke;
 	std::unordered_map<std::string, RenderItem*> mDynamicRitems;
 	
 	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
