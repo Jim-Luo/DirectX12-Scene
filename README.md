@@ -4,7 +4,7 @@
 
 This is a bachelor graduation project witch uses DirectX 12 API to render a scene of westfalls. Most of models are extract from the game, World of Warcraft. When running, it looks like follow.
 
-![westfall](\browse.png)
+![westfall](https://github.com/Jim-Luo/DirectX12-Scene/blob/master/browse.png)
 
 The aim of this project is to implement a particle system with DirectX 12 API, and as youcan see, the implementation of the campfire uses particle system.
 
