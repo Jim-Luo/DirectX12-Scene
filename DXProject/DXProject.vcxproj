@@ -219,7 +219,6 @@
     </None>
     <None Include="haystack.FBX" />
     <None Include="mSky.FBX" />
-    <None Include="wood.FBX" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LightingUtil.hlsl">

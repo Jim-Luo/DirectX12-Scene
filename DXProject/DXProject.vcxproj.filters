@@ -167,9 +167,6 @@
     <None Include="mSky.FBX">
       <Filter>sky_model</Filter>
     </None>
-    <None Include="wood.FBX">
-      <Filter>fire_model</Filter>
-    </None>
     <None Include="fire.hlsl">
       <Filter>Shaders</Filter>
     </None>
